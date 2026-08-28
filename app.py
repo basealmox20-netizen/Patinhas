@@ -1,6 +1,13 @@
 import streamlit as st
 
-from utils.auth import autenticar, usuario_logado, logout
+from utils.auth import (
+    autenticar,
+    usuario_logado,
+    logout,
+    concluir_primeiro_acesso,
+    listar_usuarios,
+    criar_usuario,
+)
 from utils.helpers import esc
 from pages_app import (
     dashboard,
@@ -30,6 +37,51 @@ def carregar_css():
 
 
 carregar_css()
+
+# ------------------------------------------------------------
+# CADASTRO DO PRIMEIRO USUÁRIO (sistema sem nenhum usuário cadastrado)
+# ------------------------------------------------------------
+def tela_cadastro_inicial():
+    st.markdown(
+        """
+        <div style="max-width:420px; margin: 6rem auto 0 auto;">
+            <div class="page-title" style="text-align:center;">Controle de Paleteiras</div>
+            <div class="page-subtitle" style="text-align:center;">
+                Nenhum usuário cadastrado ainda — crie o primeiro acesso administrador
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col_esq, col_meio, col_dir = st.columns([1, 1.2, 1])
+    with col_meio:
+        with st.form("form_cadastro_inicial"):
+            login = st.text_input("Login (usuário)", placeholder="ex: joao.silva", max_chars=40)
+            nome = st.text_input("Nome completo", max_chars=100)
+            senha = st.text_input("Senha", type="password")
+            senha_confirma = st.text_input("Confirmar senha", type="password")
+            st.caption(
+                "A senha deve ter no mínimo 8 caracteres, com letras maiúsculas, "
+                "minúsculas e ao menos um número."
+            )
+            criar = st.form_submit_button("Criar acesso administrador")
+
+            if criar:
+                if not login or not nome:
+                    st.error("Preencha login e nome.")
+                elif senha != senha_confirma:
+                    st.error("As senhas não coincidem.")
+                else:
+                    try:
+                        criar_usuario(usuario=login, senha=senha, nome=nome, perfil="Administrador")
+                        registro = autenticar(login.strip(), senha)
+                        st.session_state["usuario_logado"] = registro
+                        st.session_state["pagina_atual"] = "Dashboard"
+                        st.rerun()
+                    except ValueError as erro:
+                        st.error(str(erro))
+
 
 # ------------------------------------------------------------
 # TELA DE LOGIN
@@ -62,6 +114,51 @@ def tela_login():
                     st.rerun()
                 else:
                     st.error("Usuário ou senha inválidos.")
+
+
+# ------------------------------------------------------------
+# MÓDULO DE PRIMEIRO ACESSO
+# ------------------------------------------------------------
+def tela_primeiro_acesso():
+    """
+    Bloqueia o uso do sistema até a pessoa trocar a senha provisória
+    definida por quem concedeu o acesso (Configurações → Usuários).
+    """
+    usuario = usuario_logado()
+
+    st.markdown(
+        f"""
+        <div style="max-width:420px; margin: 6rem auto 0 auto;">
+            <div class="page-title" style="text-align:center;">Primeiro acesso</div>
+            <div class="page-subtitle" style="text-align:center;">
+                Olá, {esc(usuario['nome'])} — defina uma senha só sua para continuar
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col_esq, col_meio, col_dir = st.columns([1, 1.2, 1])
+    with col_meio:
+        with st.form("form_primeiro_acesso"):
+            nova_senha = st.text_input("Nova senha", type="password")
+            nova_senha_confirma = st.text_input("Confirmar nova senha", type="password")
+            confirmar = st.form_submit_button("Definir senha e entrar")
+
+            if confirmar:
+                if nova_senha != nova_senha_confirma:
+                    st.error("As senhas não coincidem.")
+                else:
+                    ok, mensagem = concluir_primeiro_acesso(usuario["id"], nova_senha)
+                    if ok:
+                        st.session_state["usuario_logado"]["deve_trocar_senha"] = False
+                        st.rerun()
+                    else:
+                        st.error(mensagem)
+
+        if st.button("Cancelar e sair"):
+            logout()
+            st.rerun()
 
 
 # ------------------------------------------------------------
@@ -169,10 +266,18 @@ def sidebar():
 # ------------------------------------------------------------
 def main():
     if not usuario_logado():
-        tela_login()
+        if not listar_usuarios():
+            tela_cadastro_inicial()
+        else:
+            tela_login()
         return
 
     usuario = usuario_logado()
+
+    # Ninguém passa daqui com uma senha provisória pendente de troca.
+    if usuario.get("deve_trocar_senha"):
+        tela_primeiro_acesso()
+        return
 
     if "pagina_atual" not in st.session_state:
         st.session_state["pagina_atual"] = (
