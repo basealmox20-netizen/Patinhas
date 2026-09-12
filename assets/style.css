@@ -249,6 +249,13 @@ div[data-testid="stForm"] .stFormSubmitButton > button:hover {
 .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input {
     border-radius: 8px !important;
 }
+/* Corrige o texto digitado em campos de texto (ex.: "Descrição" em
+   Registrar Quebra), que ficava sem cor definida e invisível sobre o
+   fundo claro do campo. */
+.stTextInput input, .stTextArea textarea, .stNumberInput input {
+    color: var(--cor-texto) !important;
+    background-color: var(--cor-card) !important;
+}
 /* Corrige rótulos dos campos (ex.: "Usuário", "Senha") que herdavam cor
    branca do tema e ficavam invisíveis sobre o fundo claro. */
 label, .stTextInput label, .stTextArea label, .stSelectbox label,
