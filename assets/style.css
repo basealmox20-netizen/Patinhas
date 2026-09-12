@@ -5,6 +5,7 @@
    ============================================================ */
 
 :root {
+    color-scheme: light;
     --cor-fundo: #F5F6F8;
     --cor-card: #FFFFFF;
     --cor-borda: #E4E7EC;
@@ -249,12 +250,11 @@ div[data-testid="stForm"] .stFormSubmitButton > button:hover {
 .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input {
     border-radius: 8px !important;
 }
-/* Corrige o texto digitado em campos de texto (ex.: "Descrição" em
-   Registrar Quebra), que ficava sem cor definida e invisível sobre o
-   fundo claro do campo. */
-.stTextInput input, .stTextArea textarea, .stNumberInput input {
+/* Corrige a cor da letra digitada no campo "Descrição" (Registrar
+   Quebra), que ficava sem cor definida e invisível sobre o fundo do
+   campo. Único ajuste feito aqui — não mexe em outros tipos de campo. */
+.stTextArea textarea {
     color: var(--cor-texto) !important;
-    background-color: var(--cor-card) !important;
 }
 /* Corrige rótulos dos campos (ex.: "Usuário", "Senha") que herdavam cor
    branca do tema e ficavam invisíveis sobre o fundo claro. */
