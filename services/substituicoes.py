@@ -75,3 +75,20 @@ def confirmar_substituicao(
             "observacao": observacao,
         }
     ).eq("id", substituicao_id).execute()
+
+
+def cancelar_substituicao(substituicao_id: str, observacao: str | None = None):
+    """
+    Cancela uma substituição pendente sem tocar em nenhum equipamento —
+    diferente de confirmar_substituicao, aqui nada foi trocado ainda, então
+    não há status de equipamento pra reverter. Só marca o registro como
+    Cancelada, tirando-o da lista de pendentes. Usado quando a pendência
+    deixa de ser necessária (ex.: equipamento quebrado foi consertado,
+    decisão administrativa de não repor).
+    """
+    supabase().table("substituicoes").update(
+        {
+            "status": "Cancelada",
+            "observacao": observacao,
+        }
+    ).eq("id", substituicao_id).execute()
