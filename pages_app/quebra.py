@@ -38,7 +38,9 @@ def render():
 
     codigos_map = {e["codigo"]: e for e in equipamentos}
 
-    with st.form("form_quebra"):
+    # clear_on_submit limpa todos os campos do formulário após o envio,
+    # garantindo que a tela fique pronta para um novo registro.
+    with st.form("form_quebra", clear_on_submit=True):
         codigo_selecionado = st.selectbox("Equipamento", options=list(codigos_map.keys()))
         equipamento = codigos_map[codigo_selecionado]
         local_nome = locais_map.get(equipamento.get("localizacao_atual_id"), "-")
@@ -51,19 +53,29 @@ def render():
         registrar = st.form_submit_button("Registrar quebra")
 
         if registrar:
-            svc_ocorr.registrar_quebra(
-                equipamento_id=equipamento["id"],
-                local_id=equipamento.get("localizacao_atual_id"),
-                tipo_ocorrencia=tipo_problema,
-                descricao=descricao,
-                data_ocorrencia=data_ocorrencia.isoformat(),
-                responsavel_id=usuario["id"] if usuario else None,
-            )
-            st.success(
-                f"Quebra registrada para {codigo_selecionado}. Status atualizado para 'Quebrada'."
-            )
-            st.info(
-                "O sistema verificou automaticamente o déficit da unidade. "
-                "Caso haja déficit, uma substituição pendente foi criada em 'Substituições'."
-            )
-            st.rerun()
+            try:
+                svc_ocorr.registrar_quebra(
+                    equipamento_id=equipamento["id"],
+                    local_id=equipamento.get("localizacao_atual_id"),
+                    tipo_ocorrencia=tipo_problema,
+                    descricao=descricao,
+                    data_ocorrencia=data_ocorrencia.isoformat(),
+                    responsavel_id=usuario["id"] if usuario else None,
+                )
+            except Exception as exc:
+                # Mensagem genérica pro usuário — nunca expor o erro técnico
+                # bruto na tela (mesmo padrão de segurança do resto do
+                # sistema). O detalhe real vai pro log do Streamlit Cloud.
+                print(f"[quebra.py] Falha ao registrar quebra: {exc}")
+                st.error(
+                    "Não foi possível registrar a quebra. Tente novamente ou avise um administrador."
+                )
+            else:
+                st.success(
+                    f"Quebra registrada para {codigo_selecionado}. Status atualizado para 'Quebrada'."
+                )
+                st.info(
+                    "O sistema verificou automaticamente o déficit da unidade. "
+                    "Caso haja déficit, uma substituição pendente foi criada em 'Substituições'."
+                )
+                st.rerun()
