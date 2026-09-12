@@ -32,7 +32,7 @@ def render():
             equip = s.get("equipamentos") or {}
             local = s.get("locais") or {}
             with st.container(border=True):
-                c1, c2, c3 = st.columns([2, 2, 3])
+                c1, c2, c3, c4 = st.columns([2, 2, 3, 1])
                 with c1:
                     st.markdown(f"**{equip.get('codigo', '-')}**")
                     st.caption(f"Local: {local.get('nome', '-')}")
@@ -69,6 +69,24 @@ def render():
                                 st.rerun()
                     else:
                         st.warning("Não há equipamentos disponíveis para substituição no momento.")
+                with c4:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    if st.button("Cancelar", key=f"cancelar_{s['id']}"):
+                        st.session_state[f"confirmar_cancelamento_{s['id']}"] = True
+
+                    if st.session_state.get(f"confirmar_cancelamento_{s['id']}"):
+                        st.warning("Cancelar esta pendência?")
+                        col_sim, col_nao = st.columns(2)
+                        with col_sim:
+                            if st.button("Sim", key=f"cancelar_sim_{s['id']}"):
+                                svc_sub.cancelar_substituicao(s["id"])
+                                del st.session_state[f"confirmar_cancelamento_{s['id']}"]
+                                st.success("Substituição cancelada.")
+                                st.rerun()
+                        with col_nao:
+                            if st.button("Não", key=f"cancelar_nao_{s['id']}"):
+                                del st.session_state[f"confirmar_cancelamento_{s['id']}"]
+                                st.rerun()
 
     st.markdown('<div class="section-title">Histórico de substituições</div>', unsafe_allow_html=True)
     todas = svc_sub.listar_todas()
