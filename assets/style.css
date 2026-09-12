@@ -9,7 +9,10 @@
     --cor-card: #FFFFFF;
     --cor-borda: #E4E7EC;
     --cor-texto: #1F2430;
-    --cor-texto-suave: #6B7280;
+    /* Antes #6B7280 — no limite mínimo de contraste AA sobre branco.
+       Escurecido para garantir leitura confortável em legendas, KPIs
+       e cabeçalhos de tabela. */
+    --cor-texto-suave: #475569;
 
     --cor-disponivel: #2563EB;      /* azul */
     --cor-operacao: #16A34A;        /* verde */
@@ -18,8 +21,35 @@
     --cor-substituicao: #7C3AED;    /* roxo - destaque */
 }
 
-/* Remove excesso visual padrão do Streamlit */
-#MainMenu, header, footer {visibility: hidden;}
+/* ---------------- LIMPEZA DA UI PADRÃO DO STREAMLIT ---------------- */
+/* IMPORTANTE: nunca esconder o <header> inteiro (visibility: hidden no
+   elemento pai). É dentro dele que o Streamlit renderiza o botão de
+   reabrir a sidebar quando ela está recolhida — escondê-lo trava o
+   usuário sem conseguir reexibir a barra lateral. Por isso escondemos
+   só os elementos específicos abaixo, e mantemos o header como um
+   contêiner transparente. */
+#MainMenu,
+footer,
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"] {
+    visibility: hidden;
+}
+header[data-testid="stHeader"] {
+    background-color: transparent;
+    box-shadow: none;
+}
+/* Garante que os controles de abrir/fechar a sidebar fiquem sempre
+   visíveis, clicáveis e acima do conteúdo — corrige o bug conhecido do
+   Streamlit em que a sidebar expandida cobre o botão de toggle. */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="stSidebarCollapseButton"],
+header[data-testid="stHeader"] button {
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 999999 !important;
+    position: relative;
+}
+
 .block-container {
     padding-top: 1.5rem;
     padding-bottom: 2rem;
@@ -31,6 +61,11 @@ body, .stApp {
 }
 
 /* ---------------- SIDEBAR ---------------- */
+/* A sidebar do Streamlit já é fixa (não rola junto com o conteúdo
+   principal) e mantém o próprio botão de recolher/expandir por padrão
+   quando initial_sidebar_state="expanded" está definido em
+   st.set_page_config (já configurado em app.py). Aqui só garantimos
+   contraste e estilo visual. */
 section[data-testid="stSidebar"] {
     background-color: var(--cor-card);
     border-right: 1px solid var(--cor-borda);
@@ -196,6 +231,14 @@ div[data-testid="stDialog"] .stButton > button {
     color: #FFFFFF !important;
     border: none;
 }
+/* Botões desabilitados — sem isso, o texto some sobre o fundo cinza. */
+.stButton > button:disabled,
+.stFormSubmitButton > button:disabled {
+    background-color: #F1F5F9 !important;
+    color: #94A3B8 !important;
+    border: 1px solid var(--cor-borda) !important;
+    opacity: 1 !important;
+}
 
 /* ---------------- BOTÕES PRINCIPAIS ---------------- */
 .stButton > button, .stFormSubmitButton > button {
@@ -217,10 +260,22 @@ div[data-testid="stForm"] .stFormSubmitButton > button:hover {
 .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input {
     border-radius: 8px !important;
 }
+.stTextInput input, .stDateInput input, .stNumberInput input, .stTextArea textarea {
+    color: var(--cor-texto) !important;
+    background-color: var(--cor-card) !important;
+}
+/* Placeholder — sem isso pode ficar claro demais e ilegível. */
+.stTextInput input::placeholder, .stTextArea textarea::placeholder {
+    color: #94A3B8 !important;
+    opacity: 1 !important;
+}
 /* Corrige rótulos dos campos (ex.: "Usuário", "Senha") que herdavam cor
-   branca do tema e ficavam invisíveis sobre o fundo claro. */
+   branca do tema e ficavam invisíveis sobre o fundo claro. Estendido
+   explicitamente para radio e checkbox, que usam sua própria label. */
 label, .stTextInput label, .stTextArea label, .stSelectbox label,
-.stDateInput label, .stNumberInput label, div[data-testid="stWidgetLabel"] p {
+.stDateInput label, .stNumberInput label, div[data-testid="stWidgetLabel"] p,
+.stRadio label, .stCheckbox label, .stRadio div[role="radiogroup"] label p,
+.stCheckbox label p {
     color: var(--cor-texto) !important;
     opacity: 1 !important;
 }
@@ -230,5 +285,38 @@ div[data-testid="stForm"] {
     border-radius: 10px;
     padding: 1.2rem 1.4rem;
 }
+
+/* Menu suspenso de selectbox/multiselect — o BaseWeb renderiza isso num
+   portal separado, fora do container principal. Sem forçar as cores
+   aqui, ele pode herdar o tema claro/escuro do navegador do usuário e
+   ficar com texto ilegível sobre o fundo. */
+div[data-baseweb="popover"] ul[role="listbox"],
+div[data-baseweb="menu"] {
+    background-color: var(--cor-card) !important;
+}
+div[data-baseweb="popover"] ul[role="listbox"] li,
+div[data-baseweb="menu"] li {
+    color: var(--cor-texto) !important;
+}
+div[data-baseweb="popover"] ul[role="listbox"] li:hover,
+div[data-baseweb="menu"] li:hover {
+    background-color: #EEF2FF !important;
+    color: var(--cor-disponivel) !important;
+}
+
+/* ---------------- ALERTAS NATIVOS DO STREAMLIT ---------------- */
+/* st.success / st.warning / st.error / st.info — forçamos a paleta clara
+   independente do tema do navegador/SO do usuário, senão o texto pode
+   sair claro sobre claro (mesma classe de bug já corrigida nos labels). */
+div[data-testid="stAlert"] {
+    border-radius: 10px !important;
+}
+div[data-testid="stAlert"] p, div[data-testid="stAlert"] li {
+    color: inherit !important;
+}
+div[data-testid="stAlertContentSuccess"] { color: #15803D !important; }
+div[data-testid="stAlertContentInfo"] { color: #1D4ED8 !important; }
+div[data-testid="stAlertContentWarning"] { color: #C2410C !important; }
+div[data-testid="stAlertContentError"] { color: #B91C1C !important; }
 
 hr { border-color: var(--cor-borda); }
